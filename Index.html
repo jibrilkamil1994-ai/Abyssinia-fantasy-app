@@ -7,31 +7,116 @@
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-slate-900 text-slate-100 font-sans p-4">
-  <header class="text-center py-4 border-b border-slate-800">
-    <h1 class="text-2xl font-black text-amber-400">ABYSSINIA FANTASY</h1>
-    <p id="tg-user" class="text-xs text-slate-400 mt-1">እንኳን ደህና መጡ!</p>
+<body class="bg-slate-900 text-slate-100 font-sans p-3">
+
+  <!-- Header Section -->
+  <header class="flex justify-between items-center py-3 border-b border-slate-800">
+    <div>
+      <h1 class="text-xl font-black text-amber-400">ABYSSINIA FANTASY</h1>
+      <p id="user-display" class="text-xs text-slate-400">ተጫዋች: ላልተመዘገበ</p>
+    </div>
+    <div class="bg-slate-800 px-3 py-1 rounded-full border border-slate-700">
+      <span class="text-xs text-slate-400">በጀት:</span>
+      <span id="budget-display" class="text-xs font-bold text-green-400">$100.0M</span>
+    </div>
   </header>
 
-  <main class="mt-6 space-y-4">
-    <div class="bg-slate-800 border border-slate-700 rounded-2xl p-4">
-      <h2 class="text-sm font-bold text-amber-400 mb-2">⚽ የ FPL ቡድንዎን ያያይዙ</h2>
-      <input type="number" id="fpl-id" placeholder="የ FPL Team ID ያስገቡ" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-sm text-slate-100 mb-3 focus:outline-none">
-      <button onclick="checkTeam()" class="w-full bg-amber-400 text-slate-950 font-bold py-3 rounded-xl">ቡድን አረጋግጥ</button>
-    </div>
-  </main>
+  <!-- Squad Count Progress -->
+  <div class="my-3 bg-slate-800 p-2 rounded-xl flex justify-between text-xs border border-slate-700">
+    <span>የተመረጡ ተጫዋቾች:</span>
+    <span id="squad-count" class="font-bold text-amber-400">0 / 15</span>
+  </div>
+
+  <!-- Position Tabs -->
+  <div class="grid grid-cols-4 gap-1 mb-4">
+    <button onclick="filterPos('GK')" class="bg-slate-800 hover:bg-slate-700 p-2 text-xs font-bold rounded-lg text-amber-400 border border-slate-700">GK (0/2)</button>
+    <button onclick="filterPos('DEF')" class="bg-slate-800 hover:bg-slate-700 p-2 text-xs font-bold rounded-lg text-amber-400 border border-slate-700">DEF (0/5)</button>
+    <button onclick="filterPos('MID')" class="bg-slate-800 hover:bg-slate-700 p-2 text-xs font-bold rounded-lg text-amber-400 border border-slate-700">MID (0/5)</button>
+    <button onclick="filterPos('FWD')" class="bg-slate-800 hover:bg-slate-700 p-2 text-xs font-bold rounded-lg text-amber-400 border border-slate-700">FWD (0/3)</button>
+  </div>
+
+  <!-- Player Selection Area -->
+  <div id="player-list" class="space-y-2 max-h-80 overflow-y-auto pr-1">
+    <!-- Players will load dynamically here -->
+  </div>
+
+  <!-- Deposit & Save Section -->
+  <div class="mt-6 space-y-2 border-t border-slate-800 pt-4">
+    <button onclick="saveSquad()" class="w-full bg-amber-400 hover:bg-amber-500 text-slate-950 font-black py-3 rounded-xl shadow-lg">
+      💾 ቡድኔን ሴቭ አድርግ (15 ተጫዋች)
+    </button>
+    <button onclick="depositMoney()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-xl text-sm">
+      💳 ክፍያ / ብር አስገባ (Deposit)
+    </button>
+  </div>
 
   <script>
     const tg = window.Telegram.WebApp;
     tg.expand();
+
+    // Auto Login using Telegram Data
     if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
-      document.getElementById('tg-user').innerText = `ሰላም @${tg.initDataUnsafe.user.username || tg.initDataUnsafe.user.first_name}`;
+      const u = tg.initDataUnsafe.user;
+      document.getElementById('user-display').innerText = `ተጫዋች: @${u.username || u.first_name}`;
     }
-    function checkTeam() {
-      const id = document.getElementById('fpl-id').value;
-      if(!id) return tg.showAlert("እባክዎን FPL ID ያስገቡ");
-      tg.showAlert("FPL ID: " + id + " ተቀብለናል!");
+
+    // Sample Player Data
+    const players = [
+      { id: 1, name: "Haaland", pos: "FWD", team: "MCI", price: 15.0 },
+      { id: 2, name: "Salah", pos: "MID", team: "LIV", price: 12.5 },
+      { id: 3, name: "Saka", pos: "MID", team: "ARS", price: 10.0 },
+      { id: 4, name: "Palmer", pos: "MID", team: "CHE", price: 10.5 },
+      { id: 5, name: "Raya", pos: "GK", team: "ARS", price: 5.5 },
+      { id: 6, name: "Gabriel", pos: "DEF", team: "ARS", price: 6.0 },
+      { id: 7, name: "Alexander-Arnold", pos: "DEF", team: "LIV", price: 7.0 },
+      { id: 8, name: "Watkins", pos: "FWD", team: "AVL", price: 9.0 }
+    ];
+
+    let mySquad = [];
+
+    function renderPlayers() {
+      const container = document.getElementById('player-list');
+      container.innerHTML = players.map(p => `
+        <div class="bg-slate-800 p-3 rounded-xl flex justify-between items-center border border-slate-700">
+          <div>
+            <div class="font-bold text-sm text-slate-100">${p.name}</div>
+            <div class="text-xs text-slate-400">${p.team} | ${p.pos}</div>
+          </div>
+          <div class="flex items-center gap-3">
+            <span class="text-xs font-semibold text-amber-400">$${p.price}M</span>
+            <button onclick="addPlayer(${p.id})" class="bg-amber-400 text-slate-950 px-3 py-1 rounded-lg font-bold text-xs">
+              + መዝግብ
+            </button>
+          </div>
+        </div>
+      `).join('');
     }
+
+    function addPlayer(id) {
+      if (mySquad.length >= 15) {
+        return tg.showAlert("ከ 15 ተጫዋች በላይ መምረጥ አትችልም!");
+      }
+      const player = players.find(p => p.id === id);
+      if (mySquad.some(p => p.id === id)) {
+        return tg.showAlert("ይህ ተጫዋች ተመርጧል!");
+      }
+      mySquad.push(player);
+      document.getElementById('squad-count').innerText = `${mySquad.length} / 15`;
+      tg.showAlert(`${player.name} ወደ ቡድንህ ተካቷል!`);
+    }
+
+    function saveSquad() {
+      if (mySquad.length < 15) {
+        return tg.showAlert(`እባክህ 15 ተጫዋች ሙሉ! እስካሁን የመረጥከው: ${mySquad.length}`);
+      }
+      tg.showAlert("ቡድንህ በስኬት ተመዝግቧል!");
+    }
+
+    function depositMoney() {
+      tg.showAlert("የክፍያ አገልግሎት፡ በቴሌግራም ቦት በኩል የክፍያ መመሪያ ይላክበታል!");
+    }
+
+    renderPlayers();
   </script>
 </body>
 </html>
