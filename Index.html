@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="am">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Abyssinia Fantasy</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 text-slate-100 font-sans p-4">
+  <header class="text-center py-4 border-b border-slate-800">
+    <h1 class="text-2xl font-black text-amber-400">ABYSSINIA FANTASY</h1>
+    <p id="tg-user" class="text-xs text-slate-400 mt-1">እንኳን ደህና መጡ!</p>
+  </header>
+
+  <main class="mt-6 space-y-4">
+    <div class="bg-slate-800 border border-slate-700 rounded-2xl p-4">
+      <h2 class="text-sm font-bold text-amber-400 mb-2">⚽ የ FPL ቡድንዎን ያያይዙ</h2>
+      <input type="number" id="fpl-id" placeholder="የ FPL Team ID ያስገቡ" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-sm text-slate-100 mb-3 focus:outline-none">
+      <button onclick="checkTeam()" class="w-full bg-amber-400 text-slate-950 font-bold py-3 rounded-xl">ቡድን አረጋግጥ</button>
+    </div>
+  </main>
+
+  <script>
+    const tg = window.Telegram.WebApp;
+    tg.expand();
+    if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
+      document.getElementById('tg-user').innerText = `ሰላም @${tg.initDataUnsafe.user.username || tg.initDataUnsafe.user.first_name}`;
+    }
+    function checkTeam() {
+      const id = document.getElementById('fpl-id').value;
+      if(!id) return tg.showAlert("እባክዎን FPL ID ያስገቡ");
+      tg.showAlert("FPL ID: " + id + " ተቀብለናል!");
+    }
+  </script>
+</body>
+</html>
